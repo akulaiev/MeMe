@@ -8,14 +8,8 @@
 
 import UIKit
 
-class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class CreateMemeViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
-    struct Meme {
-        var topText: String
-        var bottomText: String
-        var originalImage: UIImage
-        let memedImage: UIImage
-    }
     
     @IBOutlet weak var memeImage: UIImageView!
     @IBOutlet weak var shareButton: UIBarButtonItem!
@@ -27,8 +21,7 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     @IBOutlet weak var saveBar: UIToolbar!
     @IBOutlet weak var imageBar: UIToolbar!
     
-    func configureTextField(_ textField: UITextField, text: String) {
-        textField.text = text
+    func configureTextField(_ textField: UITextField) {
         textField.textAlignment = .center
         textField.delegate = self
         textField.defaultTextAttributes = [NSAttributedString.Key.font : UIFont(name: "Impact", size: 25.0)!, NSAttributedString.Key.foregroundColor : UIColor.white, NSAttributedString.Key.strokeColor : UIColor.black, NSAttributedString.Key.strokeWidth : -2.5]
@@ -38,12 +31,22 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         super.viewDidLoad()
         
         // Sets default states of textfields and buttons
-        subscribeToNotifications()
         shareButton.isEnabled = false
         cancelButton.isEnabled = false
-        configureTextField(topText, text: "TOP")
-        configureTextField(bottomText, text: "BOTTOM")
+        configureTextField(topText)
+        configureTextField(bottomText)
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(true)
+        subscribeToNotifications()
+    }
+    
+    // Calls the unsubscribe function
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(true)
+        unsubscribeFromKeyboardNotifications()
     }
     
     // Returns the height of the keyboard for textfields input
@@ -56,7 +59,7 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     // Subscribe to keyboard notifications (keyboard sliding up when the textfield editing begins and down, when it ends)
     func subscribeToNotifications() {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardDidHideNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
     // Subtracts keyboard height from view origin to slide it up
@@ -68,9 +71,7 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     
     // Adds keyboard height to view origin to slide it back down
     @objc func keyboardWillHide(_ notification: Notification) {
-        if !(bottomText.isEditing) {
-            view.frame.origin.y = 0
-        }
+        view.frame.origin.y = 0
     }
     
     // Clears textfields contents when first editing begins
@@ -122,7 +123,6 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     // Sets the "image" property of the meme image view
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true, completion: nil)
-        subscribeToNotifications()
         shareButton.isEnabled = true
         cancelButton.isEnabled = true
         if let image = info[.originalImage] as? UIImage {
@@ -134,7 +134,7 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         }
     }
     
-    func showRightVC(_ source: UIImagePickerController.SourceType) {
+    func showPickerController(_ source: UIImagePickerController.SourceType) {
         let pickerController = UIImagePickerController()
         pickerController.delegate = self
         pickerController.sourceType = source
@@ -143,12 +143,12 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     
     // Shows the "pick an image" VC
     @IBAction func pickAnImage(_ sender: UIBarButtonItem) {
-        showRightVC(.photoLibrary)
+        showPickerController(.photoLibrary)
     }
     
     // Shows the camera view
     @IBAction func clickAnImage(_ sender: UIBarButtonItem) {
-        showRightVC(.camera)
+        showPickerController(.camera)
     }
    
     // Shows the activity VC
@@ -165,16 +165,19 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         }
     }
     
+    func hideToolbars(_ hide: Bool) {
+        saveBar.isHidden = hide
+        imageBar.isHidden = hide
+    }
+    
     // "Grabs" an image context and renders the view hierarchy into a UIImage object
     func generateMeme() -> UIImage {
-        saveBar.isHidden = true
-        imageBar.isHidden = true
+        hideToolbars(true)
         UIGraphicsBeginImageContextWithOptions(view.frame.size, false, 0.0)
         view.drawHierarchy(in: view.frame, afterScreenUpdates: true)
         let memedImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
-        saveBar.isHidden = false
-        imageBar.isHidden = false
+        hideToolbars(false)
         return memedImage
     }
     
@@ -195,11 +198,5 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         topText.text = "TOP"
         bottomText.text = "BOTTOM"
         memeImage.image = nil
-    }
-    
-    // Calls the unsubscribe function
-    override func viewWillDisappear(_ animated: Bool) {
-        print("here")
-        unsubscribeFromKeyboardNotifications()
     }
 }
