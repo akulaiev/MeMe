@@ -78,7 +78,7 @@
                                 <fontDescription key="fontDescription" name="Impact" family="Impact" pointSize="25"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="allCharacters"/>
                             </textField>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="BOTTOM" textAlignment="center" minimumFontSize="25" translatesAutoresizingMaskIntoConstraints="NO" id="khf-QK-J1P" userLabel="Bottom Text Field">
+                            <textField opaque="NO" tag="1" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="BOTTOM" textAlignment="center" minimumFontSize="25" translatesAutoresizingMaskIntoConstraints="NO" id="khf-QK-J1P" userLabel="Bottom Text Field">
                                 <rect key="frame" x="144" y="472" width="87" height="35"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="35" id="cU5-Ba-R7k"/>

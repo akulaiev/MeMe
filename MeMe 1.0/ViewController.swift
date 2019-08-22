@@ -27,7 +27,12 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     @IBOutlet weak var saveBar: UIToolbar!
     @IBOutlet weak var imageBar: UIToolbar!
     
-    var bottomEdited = false
+    func configureTextField(_ textField: UITextField, text: String) {
+        textField.text = text
+        textField.textAlignment = .center
+        textField.delegate = self
+        textField.defaultTextAttributes = [NSAttributedString.Key.font : UIFont(name: "Impact", size: 25.0)!, NSAttributedString.Key.foregroundColor : UIColor.white, NSAttributedString.Key.strokeColor : UIColor.black, NSAttributedString.Key.strokeWidth : -2.5]
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -36,13 +41,8 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         subscribeToNotifications()
         shareButton.isEnabled = false
         cancelButton.isEnabled = false
-        let paragraphStyle = NSMutableParagraphStyle.init()
-        paragraphStyle.alignment = .center
-        let textFieldsAttributes: [NSAttributedString.Key : Any] = [NSAttributedString.Key.font : UIFont(name: "Impact", size: 25.0)!, NSAttributedString.Key.foregroundColor : UIColor.white, NSAttributedString.Key.strokeColor : UIColor.black, NSAttributedString.Key.strokeWidth : -2.5, NSAttributedString.Key.paragraphStyle : paragraphStyle]
-        topText.defaultTextAttributes = textFieldsAttributes
-        bottomText.defaultTextAttributes = textFieldsAttributes
-        topText.delegate = self
-        bottomText.delegate = self
+        configureTextField(topText, text: "TOP")
+        configureTextField(bottomText, text: "BOTTOM")
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
     }
     
@@ -62,16 +62,14 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     // Subtracts keyboard height from view origin to slide it up
     @objc func keyboardWillShow(_ notification: Notification) {
         if bottomText.isEditing {
-            bottomEdited = true
             view.frame.origin.y -= getKeyboardHeight(notification)
         }
     }
     
     // Adds keyboard height to view origin to slide it back down
     @objc func keyboardWillHide(_ notification: Notification) {
-        if bottomEdited {
-            bottomEdited = false
-            view.frame.origin.y += getKeyboardHeight(notification)
+        if !(bottomText.isEditing) {
+            view.frame.origin.y = 0
         }
     }
     
@@ -124,6 +122,7 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     // Sets the "image" property of the meme image view
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true, completion: nil)
+        subscribeToNotifications()
         shareButton.isEnabled = true
         cancelButton.isEnabled = true
         if let image = info[.originalImage] as? UIImage {
@@ -135,20 +134,21 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         }
     }
     
+    func showRightVC(_ source: UIImagePickerController.SourceType) {
+        let pickerController = UIImagePickerController()
+        pickerController.delegate = self
+        pickerController.sourceType = source
+        present(pickerController, animated: true, completion: nil)
+    }
+    
     // Shows the "pick an image" VC
     @IBAction func pickAnImage(_ sender: UIBarButtonItem) {
-        let libraryController = UIImagePickerController()
-        libraryController.sourceType = .photoLibrary
-        libraryController.delegate = self
-        present(libraryController, animated: true)
+        showRightVC(.photoLibrary)
     }
     
     // Shows the camera view
     @IBAction func clickAnImage(_ sender: UIBarButtonItem) {
-        let libraryController = UIImagePickerController()
-        libraryController.sourceType = .camera
-        libraryController.delegate = self
-        present(libraryController, animated: true)
+        showRightVC(.camera)
     }
    
     // Shows the activity VC
@@ -156,7 +156,12 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         if shareButton.isEnabled {
             let meme = generateMeme()
             let shareController = UIActivityViewController(activityItems: [meme], applicationActivities: nil)
-            present(shareController, animated: true)
+            shareController.completionWithItemsHandler = {activity, success, items, error in
+                if success {
+                    self.saveMeme()
+                }
+            }
+            self.present(shareController, animated: true)
         }
     }
     
@@ -193,7 +198,8 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     }
     
     // Calls the unsubscribe function
-    deinit {
+    override func viewWillDisappear(_ animated: Bool) {
+        print("here")
         unsubscribeFromKeyboardNotifications()
     }
 }
